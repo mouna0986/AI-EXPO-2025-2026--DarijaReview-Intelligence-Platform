@@ -134,3 +134,50 @@ def get_top_reviews(sentiment: str = "positive", limit: int = 3):
     conn.close()
 
     return [dict(row) for row in rows]
+
+#added on day6, may not work:
+@router.post("/predict")
+def predict_sentiment(payload: dict):
+    """
+    Live classify endpoint.
+    Called by the dashboard's Analyze button.
+    Uses rule-based classifier until real model is ready.
+    """
+    text = payload.get("text", "")
+    if not text.strip():
+        return {"label": "neutral", "confidence": 0.5}
+
+    import sys, os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+    try:
+        from nlp.normalize import normalize_darija
+        normalized = normalize_darija(text)
+    except Exception:
+        normalized = text.lower()
+
+    # Rule-based until real model is ready
+    POSITIVE_KW = [
+        "زين","مليح","ممتاز","نعجبني","3jebni","bon","bien","super","top",
+        "بهية","تستاهل","يستاهل","recommande","واو","رائع","نحب","زينة",
+        "waw","mzian","pos_emoji","bni","bnin","délicieux","excellent"
+    ]
+    NEGATIVE_KW = [
+        "خايب","ma3jbni","غالي","mauvais","nul","ما عجبنيش","cher","déçu",
+        "خسارة","ما نشريش","خايبة","مش مليح","neg_emoji","khayeb","ghali",
+        "périmé","expiré","makach","introuvable"
+    ]
+
+    t = normalized.lower()
+    pos = sum(1 for kw in POSITIVE_KW if kw in t)
+    neg = sum(1 for kw in NEGATIVE_KW if kw in t)
+
+    if pos > neg:
+        return {"label": "positive", "confidence": round(min(0.70 + pos * 0.05, 0.94), 2)}
+    elif neg > pos:
+        return {"label": "negative", "confidence": round(min(0.70 + neg * 0.05, 0.94), 2)}
+    else:
+        return {"label": "neutral", "confidence": 0.65}
+
+#end
+    return [dict(row) for row in rows]

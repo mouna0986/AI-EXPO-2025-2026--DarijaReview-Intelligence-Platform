@@ -1,79 +1,89 @@
-import http
-
 import dash
 from dash import dcc, html, Input, Output, State
 import plotly.graph_objects as go
 import plotly.io as pio
 import requests
 import urllib.parse
+import dash.dcc as dcc
 
 # ─────────────────────────────────────────────
 # CONFIG
 # ─────────────────────────────────────────────
 API_BASE = "http://127.0.0.1:8000/api"
 
-# ── RAMY PALETTE (exact from Edition Limitée photo) ──
-C_RED    = "#C8102E"   # Ramy logo red
-C_RED2   = "#E63946"   # brighter red
-C_GREEN  = "#1A6B2F"   # Algerian flag green
-C_GOLD   = "#C8960A"   # zellige gold ground
+# ── 🍊🍑 TONED RAMY PALETTE ─────────────────
+C_RED    = "#C0392B"   # toned warm red — not harsh
+C_RED2   = "#D4504A"   # lighter coral-red
+C_GREEN  = "#2E7D52"   # warm forest green
+C_GOLD   = "#C8960A"   # zellige gold
 C_GOLD2  = "#D4AF37"   # accent gold
-C_PEACH  = "#F4A03A"   # orange-peach fruit
-C_WHITE  = "#FFFDF5"   # warm white
+C_PEACH  = "#F0813A"   # orange-peach
+C_PEACH2 = "#FFAA6A"   # lighter peach
 
-# Dashboard colors
-COLOR_BG       = "#FFF8E8"          # warm parchment — the "light" base
-COLOR_SURFACE  = "rgba(255,253,245,0.78)"
-COLOR_GLASS    = "rgba(255,253,240,0.65)"
-COLOR_BORDER   = "rgba(200,150,10,0.35)"
-COLOR_BORDER_H = "rgba(200,150,10,0.7)"
-COLOR_TEXT     = "#1C0800"
-COLOR_MUTED    = "#7A5520"
-COLOR_POSITIVE = "#1A6B2F"
+COLOR_BG       = "#FFF5E6"
+COLOR_GLASS    = "rgba(255,248,228,0.72)"
+COLOR_BORDER   = "rgba(200,150,10,0.28)"
+COLOR_BORDER_H = "rgba(200,150,10,0.62)"
+COLOR_TEXT     = "#3D1200"
+COLOR_MUTED    = "#8B5A2B"
+COLOR_POSITIVE = C_GREEN
 COLOR_NEGATIVE = C_RED
 COLOR_NEUTRAL  = "#B87816"
 
-
 # ─────────────────────────────────────────────
-# ZELLIGE SVG TILE — matching the Ramy photo
-# Red 12-pt stars + green octagons + gold ground
-# Bright & vibrant, 240×240 repeat tile
+# ZELLIGE SVG TILE
 # ─────────────────────────────────────────────
 _ZELLIGE_RAW = """<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'>
-<rect width='240' height='240' fill='%23C8960A'/>
-<polygon points='120,6 132,38 164,22 156,56 190,48 178,80 212,82 194,110 214,136 188,136 198,170 164,158 158,192 132,172 120,204 108,172 82,192 76,158 42,170 52,136 26,136 46,110 28,82 62,80 50,48 84,56 76,22 108,38' fill='%23C8102E' stroke='%23FFF8E8' stroke-width='1.5'/>
-<polygon points='120,44 140,60 152,82 152,118 140,140 120,156 100,140 88,118 88,82 100,60' fill='%231A6B2F' stroke='%23D4AF37' stroke-width='1.8'/>
-<polygon points='120,72 136,96 120,120 104,96' fill='%23D4AF37' stroke='%23FFF8E8' stroke-width='1.2'/>
-<polygon points='0,0 18,24 44,10 36,40 64,38 52,66 78,72 58,94 76,116 50,114 60,142 34,130 28,158 8,142 0,170' fill='%23C8102E' stroke='%23FFF8E8' stroke-width='1.2' opacity='0.9'/>
-<polygon points='0,0 10,42 44,34 38,66 0,62' fill='%231A6B2F' stroke='%23D4AF37' stroke-width='1.5' opacity='0.9'/>
-<polygon points='240,0 222,24 196,10 204,40 176,38 188,66 162,72 182,94 164,116 190,114 180,142 206,130 212,158 232,142 240,170' fill='%23C8102E' stroke='%23FFF8E8' stroke-width='1.2' opacity='0.9'/>
-<polygon points='240,0 230,42 196,34 202,66 240,62' fill='%231A6B2F' stroke='%23D4AF37' stroke-width='1.5' opacity='0.9'/>
-<polygon points='0,240 18,216 44,230 36,200 64,202 52,174 78,168 58,146 76,124 50,126 60,98 34,110 28,82 8,98 0,70' fill='%23C8102E' stroke='%23FFF8E8' stroke-width='1.2' opacity='0.9'/>
-<polygon points='0,240 10,198 44,206 38,174 0,178' fill='%231A6B2F' stroke='%23D4AF37' stroke-width='1.5' opacity='0.9'/>
-<polygon points='240,240 222,216 196,230 204,200 176,202 188,174 162,168 182,146 164,124 190,126 180,98 206,110 212,82 232,98 240,70' fill='%23C8102E' stroke='%23FFF8E8' stroke-width='1.2' opacity='0.9'/>
-<polygon points='240,240 230,198 196,206 202,174 240,178' fill='%231A6B2F' stroke='%23D4AF37' stroke-width='1.5' opacity='0.9'/>
-<polygon points='120,6 126,20 138,12 134,26 148,22 142,36 156,38 146,50 154,62 140,60 142,74 128,68 126,82 118,72 120,86 112,72 114,82 100,68 98,74 84,60 92,62 82,50 96,38 90,36 84,22 98,26 94,12 106,20' fill='%23D4AF37' stroke='%23FFF8E8' stroke-width='0.8' opacity='0.75'/>
-<line x1='120' y1='0' x2='120' y2='240' stroke='%23D4AF37' stroke-width='0.6' opacity='0.35'/>
-<line x1='0' y1='120' x2='240' y2='120' stroke='%23D4AF37' stroke-width='0.6' opacity='0.35'/>
-<line x1='0' y1='0' x2='240' y2='240' stroke='%23FFF8E8' stroke-width='0.4' opacity='0.15'/>
-<line x1='240' y1='0' x2='0' y2='240' stroke='%23FFF8E8' stroke-width='0.4' opacity='0.15'/>
+  <rect width='240' height='240' fill='%23C8960A'/>
+  <polygon points='120,6 132,38 164,22 156,56 190,48 178,80 212,82 194,110 214,136 188,136 198,170 164,158 158,192 132,172 120,204 108,172 82,192 76,158 42,170 52,136 26,136 46,110 28,82 62,80 50,48 84,56 76,22 108,38' fill='%23B03428' stroke='%23FFF8EE' stroke-width='1.5'/>
+  <polygon points='120,44 140,60 152,82 152,118 140,140 120,156 100,140 88,118 88,82 100,60' fill='%232E7D52' stroke='%23D4AF37' stroke-width='1.8'/>
+  <polygon points='120,72 136,96 120,120 104,96' fill='%23D4AF37' stroke='%23FFF8EE' stroke-width='1.2'/>
+  <polygon points='0,0 18,24 44,10 36,40 64,38 52,66 78,72 58,94 76,116 50,114 60,142 34,130 28,158 8,142 0,170' fill='%23B03428' stroke='%23FFF8EE' stroke-width='1.2' opacity='0.85'/>
+  <polygon points='0,0 10,42 44,34 38,66 0,62' fill='%232E7D52' stroke='%23D4AF37' stroke-width='1.5' opacity='0.85'/>
+  <polygon points='240,0 222,24 196,10 204,40 176,38 188,66 162,72 182,94 164,116 190,114 180,142 206,130 212,158 232,142 240,170' fill='%23B03428' stroke='%23FFF8EE' stroke-width='1.2' opacity='0.85'/>
+  <polygon points='240,0 230,42 196,34 202,66 240,62' fill='%232E7D52' stroke='%23D4AF37' stroke-width='1.5' opacity='0.85'/>
+  <polygon points='0,240 18,216 44,230 36,200 64,202 52,174 78,168 58,146 76,124 50,126 60,98 34,110 28,82 8,98 0,70' fill='%23B03428' stroke='%23FFF8EE' stroke-width='1.2' opacity='0.85'/>
+  <polygon points='0,240 10,198 44,206 38,174 0,178' fill='%232E7D52' stroke='%23D4AF37' stroke-width='1.5' opacity='0.85'/>
+  <polygon points='240,240 222,216 196,230 204,200 176,202 188,174 162,168 182,146 164,124 190,126 180,98 206,110 212,82 232,98 240,70' fill='%23B03428' stroke='%23FFF8EE' stroke-width='1.2' opacity='0.85'/>
+  <polygon points='240,240 230,198 196,206 202,174 240,178' fill='%232E7D52' stroke='%23D4AF37' stroke-width='1.5' opacity='0.85'/>
+  <line x1='120' y1='0' x2='120' y2='240' stroke='%23D4AF37' stroke-width='0.6' opacity='0.28'/>
+  <line x1='0' y1='120' x2='240' y2='120' stroke='%23D4AF37' stroke-width='0.6' opacity='0.28'/>
+  <line x1='0' y1='0' x2='240' y2='240' stroke='%23FFF8EE' stroke-width='0.4' opacity='0.10'/>
+  <line x1='240' y1='0' x2='0' y2='240' stroke='%23FFF8EE' stroke-width='0.4' opacity='0.10'/>
 </svg>"""
 
-ZELLIGE_URL = "data:image/svg+xml," + urllib.parse.quote(_ZELLIGE_RAW.replace("\n", "").replace("  ", " "))
-
+ZELLIGE_URL = "data:image/svg+xml," + urllib.parse.quote(
+    _ZELLIGE_RAW.replace("\n", "").replace("  ", " ")
+)
 
 # ─────────────────────────────────────────────
-# STAT CARD IMAGE SLOTS
-# Replace these with your real image URLs!
-# Each key maps to: (emoji_fallback, label)
+# RAMY CAN SVG — inline, no external assets
 # ─────────────────────────────────────────────
-CARD_IMAGES = {
-    "total":    {"url": None,  "emoji": "📋", "fruit": "🍹"},
-    "positive": {"url": None,  "emoji": "😊", "fruit": "🍑"},   # → swap url with peach/can PNG
-    "negative": {"url": None,  "emoji": "😞", "fruit": "🍊"},   # → swap url with orange/can PNG
-    "neutral":  {"url": None,  "emoji": "😐", "fruit": "🫐"},   # → swap url with blueberry/can PNG
-}
-# Example: "url": "https://your-cdn.com/ramy-can-peach.png"
+def ramy_can_svg():
+    return """<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 180'>
+      <rect x='8' y='20' width='64' height='140' rx='10' fill='url(#cg)'/>
+      <rect x='8' y='50' width='64' height='80' rx='0' fill='url(#lg)'/>
+      <ellipse cx='40' cy='20' rx='32' ry='8' fill='#E0E0E0'/>
+      <ellipse cx='40' cy='160' rx='32' ry='8' fill='#C8C8C8'/>
+      <ellipse cx='40' cy='16' rx='10' ry='3' fill='#BBBBBB' stroke='#999' stroke-width='1'/>
+      <circle cx='40' cy='90' r='18' fill='#F4A03A' opacity='0.92'/>
+      <circle cx='40' cy='90' r='12' fill='#FFB347' opacity='0.7'/>
+      <ellipse cx='49' cy='74' rx='5' ry='9' fill='#2E7D52' transform='rotate(-30 49 74)' opacity='0.9'/>
+      <text x='40' y='60' text-anchor='middle' font-family='Georgia,serif' font-size='11' font-weight='900' fill='#C0392B'>Ramy</text>
+      <text x='40' y='122' text-anchor='middle' font-family='Arial' font-size='6' font-weight='700' fill='#FFF8EE' letter-spacing='1'>EDITION</text>
+      <text x='40' y='131' text-anchor='middle' font-family='Georgia,serif' font-size='7' fill='#D4AF37' font-style='italic'>Limitée</text>
+      <text x='40' y='143' text-anchor='middle' font-family='Arial' font-size='5' font-weight='600' fill='#FFF8EE'>ORANGE PÊCHE</text>
+      <defs>
+        <linearGradient id='cg' x1='0' y1='0' x2='1' y2='0'>
+          <stop offset='0%' stop-color='#D0D0D0'/><stop offset='40%' stop-color='#F5F5F5'/>
+          <stop offset='70%' stop-color='#E5E5E5'/><stop offset='100%' stop-color='#B8B8B8'/>
+        </linearGradient>
+        <linearGradient id='lg' x1='0' y1='0' x2='1' y2='0'>
+          <stop offset='0%' stop-color='#EDE4CC'/><stop offset='50%' stop-color='#FFFDF5'/>
+          <stop offset='100%' stop-color='#EDE4CC'/>
+        </linearGradient>
+      </defs>
+    </svg>"""
 
 
 # ─────────────────────────────────────────────
@@ -85,42 +95,43 @@ GLOBAL_CSS = f"""
 *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
 html, body {{ font-family: 'DM Sans', sans-serif; color-scheme: light; }}
 
-/* ═══════════════════════════════════════════
-   BODY: bright zellige matching the Ramy photo
-   Warm golden light overlay so it's vibrant
-   but cards remain readable
-   ═══════════════════════════════════════════ */
 body {{
     background-color: {COLOR_BG};
     background-image:
         linear-gradient(160deg,
-            rgba(255,220,120,0.38) 0%,
-            rgba(255,253,240,0.22) 35%,
-            rgba(255,200,80,0.18) 70%,
-            rgba(240,160,60,0.25) 100%
+            rgba(255,200,90,0.30) 0%,
+            rgba(255,245,215,0.16) 40%,
+            rgba(240,135,50,0.18) 100%
         ),
         url("{ZELLIGE_URL}");
-    background-size: cover, 240px 240px;
+    background-size: cover, 200px 200px;
     background-attachment: fixed, fixed;
     background-repeat: no-repeat, repeat;
     min-height: 100vh;
 }}
 
-/* ═══════════════════════════════════════════
-   GLASS CARDS — warm frosted glass
-   Semi-transparent over the zellige
-   ═══════════════════════════════════════════ */
+/* ── FLOATING CANS ── */
+.can-float {{
+    position: fixed;
+    pointer-events: none;
+    z-index: 0;
+}}
+.can-left  {{ bottom: -10px; left: -12px;  width: 110px; opacity: 0.20; transform: rotate(-14deg); }}
+.can-right {{ bottom: -10px; right: -12px; width: 95px;  opacity: 0.18; transform: rotate(13deg); }}
+.can-top   {{ top: 90px;     right: 55px;  width: 65px;  opacity: 0.11; transform: rotate(9deg);  }}
+
+/* ── GLASS CARDS ── */
 .glass {{
     background: {COLOR_GLASS};
     border: 1.5px solid {COLOR_BORDER};
     border-radius: 22px;
-    backdrop-filter: blur(18px) saturate(160%) brightness(1.08);
-    -webkit-backdrop-filter: blur(18px) saturate(160%) brightness(1.08);
+    backdrop-filter: blur(20px) saturate(170%) brightness(1.07);
+    -webkit-backdrop-filter: blur(20px) saturate(170%) brightness(1.07);
     box-shadow:
-        0 2px 0 rgba(255,255,220,0.9) inset,
-        0 -1px 0 rgba(180,130,0,0.15) inset,
-        0 8px 32px rgba(180,110,0,0.14),
-        0 2px 8px rgba(0,0,0,0.06);
+        0 2px 0 rgba(255,248,205,0.90) inset,
+        0 -1px 0 rgba(180,130,0,0.12) inset,
+        0 8px 32px rgba(160,90,0,0.12),
+        0 2px 8px rgba(0,0,0,0.05);
     position: relative;
     overflow: hidden;
     transition: all 0.38s cubic-bezier(0.34,1.56,0.64,1);
@@ -128,183 +139,133 @@ body {{
 .glass::before {{
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1.5px;
-    background: linear-gradient(90deg, transparent, rgba(255,240,160,0.95) 40%, rgba(212,175,55,0.85) 60%, transparent);
+    top: 0; left: 0; right: 0; height: 1.5px;
+    background: linear-gradient(90deg, transparent, rgba(255,235,140,0.90) 40%, rgba(212,175,55,0.78) 60%, transparent);
     pointer-events: none;
 }}
 .glass:hover {{
-    transform: translateY(-5px);
+    transform: translateY(-4px);
     border-color: {COLOR_BORDER_H};
     box-shadow:
-        0 2px 0 rgba(255,255,220,0.95) inset,
-        0 -1px 0 rgba(180,130,0,0.2) inset,
-        0 20px 50px rgba(180,110,0,0.22),
-        0 4px 12px rgba(0,0,0,0.1);
+        0 2px 0 rgba(255,248,205,0.95) inset,
+        0 -1px 0 rgba(180,130,0,0.18) inset,
+        0 18px 46px rgba(160,90,0,0.19),
+        0 4px 12px rgba(0,0,0,0.07);
 }}
 
-/* ═══════════════════════════════════════════
-   STAT CARDS — image ghost + emoji watermark
-   ═══════════════════════════════════════════ */
+/* ── STAT CARDS ── */
 .stat-card {{ padding: 26px 22px 20px; flex: 1; min-width: 175px; cursor: default; }}
 
-/* Ghost fruit image — swap with real PNG URLs via inline style */
-.card-img-ghost {{
-    position: absolute;
-    right: -14px;
-    bottom: -18px;
-    width: 110px;
-    height: 110px;
-    object-fit: contain;
-    opacity: 0.13;
-    filter: saturate(1.3) blur(0.3px);
-    transform: rotate(-8deg);
-    pointer-events: none;
-    user-select: none;
-    transition: opacity 0.35s, transform 0.35s;
-}}
-.glass:hover .card-img-ghost {{
-    opacity: 0.25;
-    transform: rotate(-3deg) scale(1.08) translateY(-4px);
-}}
-
-/* Emoji fallback (when no image URL provided) */
 .card-emoji-ghost {{
-    position: absolute;
-    right: -8px;
-    bottom: -12px;
-    font-size: 80px;
-    line-height: 1;
-    opacity: 0.13;
-    transform: rotate(-8deg);
-    pointer-events: none;
-    user-select: none;
-    filter: blur(0.5px) saturate(1.2);
-    transition: opacity 0.35s, transform 0.35s;
+    position: absolute; right: -8px; bottom: -10px;
+    font-size: 82px; line-height: 1; opacity: 0.10;
+    transform: rotate(-8deg); pointer-events: none; user-select: none;
+    transition: opacity 0.38s, transform 0.38s;
 }}
 .glass:hover .card-emoji-ghost {{
-    opacity: 0.26;
-    transform: rotate(-3deg) scale(1.1);
+    opacity: 0.22; transform: rotate(-3deg) scale(1.12) translateY(-5px);
 }}
-
-/* Water splash / fruit scatter decoration strip at top of each card */
 .card-fruit-strip {{
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 5px;
-    border-radius: 22px 22px 0 0;
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 5px; border-radius: 22px 22px 0 0;
 }}
 
-/* ═══════════════════════════════════════════
-   REVIEW BUBBLES
-   ═══════════════════════════════════════════ */
+/* ── REVIEW BUBBLES ── */
 .r-bubble {{
-    background: rgba(255,253,240,0.6);
-    border: 1.5px solid rgba(200,150,10,0.28);
+    background: rgba(255,248,225,0.65);
+    border: 1.5px solid rgba(200,150,10,0.22);
     border-left: 4px solid {C_RED};
-    border-radius: 16px;
-    padding: 14px 18px;
-    margin-bottom: 10px;
-    cursor: default;
-    transition: all 0.3s ease;
+    border-radius: 16px; padding: 14px 18px; margin-bottom: 10px;
+    cursor: default; transition: all 0.28s cubic-bezier(0.34,1.56,0.64,1);
 }}
 .r-bubble.pos {{ border-left-color: {C_GREEN}; }}
 .r-bubble:hover {{
-    transform: translateX(5px);
-    background: rgba(255,253,240,0.88);
-    border-color: rgba(200,150,10,0.6);
-    box-shadow: 0 4px 18px rgba(180,110,0,0.16);
+    transform: translateX(6px);
+    background: rgba(255,248,225,0.90);
+    border-color: rgba(200,150,10,0.52);
+    box-shadow: 0 5px 18px rgba(160,90,0,0.13);
 }}
 
-/* ═══════════════════════════════════════════
-   PRICE TABLE
-   ═══════════════════════════════════════════ */
-.p-row {{ transition: background 0.2s ease; cursor: default; }}
-.p-row:hover td {{ background: rgba(212,175,55,0.12) !important; }}
+/* ── PRICE TABLE ── */
+.p-row {{ transition: background 0.2s ease; }}
+.p-row:hover td {{ background: rgba(212,175,55,0.11) !important; }}
 
-/* ═══════════════════════════════════════════
-   ANALYZE BUTTON
-   ═══════════════════════════════════════════ */
+/* ── ANALYZE BUTTON ── */
 .analyze-btn {{ transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); }}
 .analyze-btn:hover {{
     transform: translateY(-4px) scale(1.04) !important;
-    box-shadow: 0 14px 36px rgba(200,16,46,0.48) !important;
+    box-shadow: 0 14px 36px rgba(192,57,43,0.44) !important;
 }}
 .analyze-btn:active {{ transform: scale(0.97) !important; }}
 
+/* ── TEXTAREA ── */
 .review-ta {{ transition: border-color 0.25s, box-shadow 0.25s; }}
 .review-ta:focus {{
     border-color: {C_GOLD2} !important;
-    box-shadow: 0 0 0 3px rgba(212,175,55,0.22) !important;
+    box-shadow: 0 0 0 3px rgba(212,175,55,0.20) !important;
     outline: none;
 }}
 
-/* ═══════════════════════════════════════════
-   SENTIMENT EMOJI BADGES
-   ═══════════════════════════════════════════ */
+/* ── SENTIMENT BADGES ── */
 .sentiment-emoji {{
     display: inline-flex; align-items: center; justify-content: center;
-    width: 36px; height: 36px; border-radius: 50%;
-    font-size: 20px; flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    width: 36px; height: 36px; border-radius: 50%; font-size: 20px; flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
 }}
-.emoji-pos {{ background: rgba(26,107,47,0.14); border: 2px solid rgba(26,107,47,0.38); }}
-.emoji-neg {{ background: rgba(200,16,46,0.12); border: 2px solid rgba(200,16,46,0.35); }}
+.emoji-pos {{ background: rgba(46,125,82,0.13); border: 2px solid rgba(46,125,82,0.34); }}
+.emoji-neg {{ background: rgba(192,57,43,0.11); border: 2px solid rgba(192,57,43,0.30); }}
 
-/* ═══════════════════════════════════════════
-   ANIMATIONS
-   ═══════════════════════════════════════════ */
+/* ── LIVE DOT ── */
 @keyframes blink {{ 0%,100%{{opacity:1}} 50%{{opacity:0.2}} }}
 .live-dot {{ animation: blink 1.6s ease-in-out infinite; }}
 
+/* ── FADE UP ── */
 @keyframes fadeUp {{ from{{opacity:0;transform:translateY(22px)}} to{{opacity:1;transform:translateY(0)}} }}
 .f1{{animation:fadeUp 0.55s 0.00s ease both}}
 .f2{{animation:fadeUp 0.55s 0.10s ease both}}
 .f3{{animation:fadeUp 0.55s 0.20s ease both}}
 .f4{{animation:fadeUp 0.55s 0.30s ease both}}
 
+/* ── SHIMMER TITLE ── */
 @keyframes shimmer {{
     0%   {{ background-position: -300% center; }}
-    100% {{ background-position: 300% center; }}
+    100% {{ background-position:  300% center; }}
 }}
 .shimmer-text {{
-    background: linear-gradient(90deg, {C_RED} 0%, {C_GOLD2} 35%, {C_RED} 55%, {C_GREEN} 80%, {C_GOLD2} 100%);
+    background: linear-gradient(90deg, {C_RED} 0%, {C_GOLD2} 35%, {C_PEACH} 55%, {C_GREEN} 80%, {C_GOLD2} 100%);
     background-size: 300% auto;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: shimmer 4s linear infinite;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; animation: shimmer 5s linear infinite;
 }}
 
-/* Decorative gold divider */
+/* ── GOLD DIVIDER ── */
 .gold-bar {{
     height: 1.5px;
-    background: linear-gradient(90deg, transparent, {C_GOLD2} 20%, {C_RED} 50%, {C_GREEN} 80%, transparent);
-    border-radius: 2px;
-    opacity: 0.55;
-    margin-bottom: 18px;
+    background: linear-gradient(90deg, transparent, {C_GOLD2} 20%, {C_PEACH} 50%, {C_GREEN} 80%, transparent);
+    border-radius: 2px; opacity: 0.42; margin-bottom: 18px;
 }}
 
-/* Section heading */
+/* ── SECTION TITLE ── */
 .sec-title {{
-    font-family: 'Fraunces', serif;
-    font-size: 17px; font-weight: 800;
-    color: {COLOR_TEXT};
-    margin-bottom: 14px;
+    font-family: 'Fraunces', serif; font-size: 17px;
+    font-weight: 800; color: {COLOR_TEXT}; margin-bottom: 14px;
 }}
 
-/* Scrollbar */
+/* ── SCROLLBAR ── */
 ::-webkit-scrollbar {{ width: 5px; }}
-::-webkit-scrollbar-track {{ background: rgba(200,150,10,0.08); }}
-::-webkit-scrollbar-thumb {{ background: rgba(200,150,10,0.35); border-radius: 3px; }}
+::-webkit-scrollbar-track {{ background: rgba(200,150,10,0.07); }}
+::-webkit-scrollbar-thumb {{ background: rgba(200,150,10,0.28); border-radius: 3px; }}
+::-webkit-scrollbar-thumb:hover {{ background: rgba(200,150,10,0.52); }}
 """
-
 
 # ─────────────────────────────────────────────
 # APP
 # ─────────────────────────────────────────────
-app = dash.Dash(__name__, title="DarijaReview Intelligence — Ramy 🧃",
-                suppress_callback_exceptions=True)
+app = dash.Dash(
+    __name__,
+    title="DarijaReview Intelligence — Ramy 🧃",
+    suppress_callback_exceptions=True
+)
 
 pio.templates.default = "plotly_white"
 pio.templates["plotly_white"].layout.paper_bgcolor = "rgba(0,0,0,0)"
@@ -338,54 +299,22 @@ def fetch(endpoint):
         return None
 
 
-def card_ghost(key):
-    """
-    Returns either an <img> ghost (if URL provided) or an emoji ghost.
-    To use real images: set CARD_IMAGES[key]["url"] = "https://..."
-    """
-    cfg = CARD_IMAGES.get(key, {})
-    url = cfg.get("url")
-    if url:
-        return html.Img(
-            src=url,
-            className="card-img-ghost",
-            # Override position/sizing here if needed per card
-        )
-    else:
-        # Emoji fallback until you link real images
-        return html.Div(
-            cfg.get("fruit", "🍊"),
-            className="card-emoji-ghost"
-        )
-
-
-def stat_card(key, title, value, value_color, subtitle, stripe_color, anim="f1"):
-    """
-    Glassmorphism stat card.
-    Ghost image slot ready — just update CARD_IMAGES[key]["url"].
-    """
+def stat_card(title, value, value_color, subtitle, stripe_a, stripe_b, emoji, anim="f1"):
     return html.Div([
-        # Colored top stripe
         html.Div(className="card-fruit-strip", style={
-            "background": f"linear-gradient(90deg, {stripe_color}, {C_GOLD2}, {stripe_color})"
+            "background": f"linear-gradient(90deg, {stripe_a}, {stripe_b})"
         }),
-        # Ghost image / emoji watermark
-        card_ghost(key),
-        # Label
+        html.Div(emoji, className="card-emoji-ghost"),
         html.P(title, style={
             "fontSize": "10px", "fontWeight": "600", "color": COLOR_MUTED,
             "textTransform": "uppercase", "letterSpacing": "2.5px",
             "marginBottom": "12px", "position": "relative", "zIndex": "1"
         }),
-        # Big metric value
         html.H2(value, style={
-            "fontSize": "50px", "fontWeight": "900",
-            "color": value_color, "fontFamily": "'Fraunces', serif",
-            "lineHeight": "1", "marginBottom": "6px",
-            "textShadow": "0 1px 10px rgba(0,0,0,0.08)",
+            "fontSize": "50px", "fontWeight": "900", "color": value_color,
+            "fontFamily": "'Fraunces', serif", "lineHeight": "1", "marginBottom": "6px",
             "position": "relative", "zIndex": "1",
         }),
-        # Subtitle
         html.P(subtitle, style={
             "fontSize": "11px", "color": COLOR_MUTED, "fontWeight": "300",
             "position": "relative", "zIndex": "1",
@@ -413,15 +342,17 @@ def glass_card(children, extra=None, anim=""):
 # ─────────────────────────────────────────────
 app.layout = html.Div([
 
-    # ══ HEADER ══════════════════════════════════════════════════════
+    # ── DECORATIVE CANS ─────────────────────
+html.Div(ramy_can_svg(), className="can-float can-left"),
+html.Div(ramy_can_svg(), className="can-float can-right"),
+html.Div(ramy_can_svg(), className="can-float can-top"),
+    # ── HEADER ──────────────────────────────
     html.Div([
         html.Div([
-
-            # Left — logo + wordmark
             html.Div([
                 html.Span("🧃", style={
                     "fontSize": "36px",
-                    "filter": "drop-shadow(0 2px 6px rgba(200,16,46,0.35))"
+                    "filter": "drop-shadow(0 2px 6px rgba(192,57,43,0.28))"
                 }),
                 html.Div([
                     html.P("RAMY · الجزائر", style={
@@ -443,13 +374,11 @@ app.layout = html.Div([
                 ]),
             ], style={"display": "flex", "alignItems": "center", "gap": "14px"}),
 
-            # Right — live badge
             html.Div([
                 html.Div([
                     html.Div(className="live-dot", style={
                         "width": "8px", "height": "8px", "borderRadius": "50%",
-                        "backgroundColor": C_GREEN,
-                        "boxShadow": f"0 0 8px {C_GREEN}"
+                        "backgroundColor": C_GREEN, "boxShadow": f"0 0 8px {C_GREEN}"
                     }),
                     html.Span("LIVE", style={
                         "color": C_GREEN, "fontWeight": "700",
@@ -457,8 +386,8 @@ app.layout = html.Div([
                     })
                 ], style={
                     "display": "flex", "alignItems": "center", "gap": "8px",
-                    "background": "rgba(26,107,47,0.1)",
-                    "border": f"1.5px solid rgba(26,107,47,0.4)",
+                    "background": "rgba(46,125,82,0.10)",
+                    "border": "1.5px solid rgba(46,125,82,0.36)",
                     "borderRadius": "100px", "padding": "7px 16px",
                     "backdropFilter": "blur(8px)"
                 })
@@ -469,56 +398,50 @@ app.layout = html.Div([
             "alignItems": "center", "maxWidth": "1400px", "margin": "0 auto"
         })
     ], style={
-        "background": "rgba(255,253,240,0.82)",
-        "backdropFilter": "blur(22px) saturate(150%)",
-        "borderBottom": f"1.5px solid {COLOR_BORDER}",
-        "borderBottomColor": C_GOLD2,
+        "background": "rgba(255,248,228,0.86)",
+        "backdropFilter": "blur(22px) saturate(160%)",
+        "borderBottom": "2px solid rgba(212,175,55,0.48)",
         "padding": "15px 36px",
         "position": "sticky", "top": "0", "zIndex": "100",
-        "boxShadow": f"0 2px 24px rgba(180,110,0,0.18), 0 1px 0 rgba(212,175,55,0.4)"
+        "boxShadow": "0 2px 24px rgba(160,90,0,0.15), 0 1px 0 rgba(212,175,55,0.36)"
     }),
 
-    # ══ MAIN ════════════════════════════════════════════════════════
+    # ── MAIN ────────────────────────────────
     html.Div([
 
-        # ── STAT CARDS ROW ──────────────────────────────────────────
-        # Each card has a ghost slot. Update CARD_IMAGES dict with real URLs.
         html.Div(id="stat-cards", style={
             "display": "flex", "gap": "14px",
             "marginBottom": "18px", "flexWrap": "wrap"
         }),
 
-        # ── PIE + RADAR ─────────────────────────────────────────────
         html.Div([
             glass_card([
-                section_title("Sentiment Overview"),
+                section_title("🍊 Sentiment Overview"),
                 gold_divider(),
                 dcc.Graph(id="sentiment-pie", config={"displayModeBar": False})
             ], {"flex": "1", "minWidth": "300px"}, "f2"),
-
             glass_card([
-                section_title("What Customers Talk About"),
+                section_title("🍑 What Customers Talk About"),
                 gold_divider(),
                 dcc.Graph(id="aspect-radar", config={"displayModeBar": False})
             ], {"flex": "1", "minWidth": "300px"}, "f2"),
         ], style={"display": "flex", "gap": "14px", "marginBottom": "18px", "flexWrap": "wrap"}),
 
-        # ── REVIEWS + PRICES ────────────────────────────────────────
         html.Div([
             glass_card([
                 section_title("📣 What Customers Are Saying"),
                 gold_divider(),
                 html.Div(id="top-reviews")
             ], {"flex": "1.3", "minWidth": "300px"}, "f3"),
-
             glass_card([
                 section_title("💰 Competitor Prices"),
                 gold_divider(),
+                dcc.Graph(id="price-chart", config={"displayModeBar": False},
+                          style={"marginBottom": "12px"}),
                 html.Div(id="price-table")
             ], {"flex": "1", "minWidth": "270px"}, "f3"),
         ], style={"display": "flex", "gap": "14px", "marginBottom": "18px", "flexWrap": "wrap"}),
 
-        # ── LIVE ANALYZER ───────────────────────────────────────────
         glass_card([
             section_title("⚡ Live Review Analyzer"),
             gold_divider(),
@@ -536,8 +459,7 @@ app.layout = html.Div([
                     "backgroundColor": "rgba(255,245,210,0.55)",
                     "color": COLOR_TEXT,
                     "border": f"1.5px solid {COLOR_BORDER}",
-                    "borderRadius": "14px",
-                    "padding": "13px 16px",
+                    "borderRadius": "14px", "padding": "13px 16px",
                     "fontSize": "15px", "resize": "none",
                     "fontFamily": "'DM Sans', sans-serif",
                     "outline": "none", "display": "block",
@@ -545,11 +467,11 @@ app.layout = html.Div([
             ),
             html.Button("Analyze →", id="classify-btn", className="analyze-btn", style={
                 "marginTop": "13px",
-                "background": f"linear-gradient(135deg, {C_RED} 0%, {C_RED2} 60%, #900020 100%)",
+                "background": f"linear-gradient(135deg, {C_RED} 0%, {C_RED2} 60%, #8B1A10 100%)",
                 "color": "#FFFFFF", "border": "none", "borderRadius": "14px",
                 "padding": "13px 40px", "fontSize": "15px", "fontWeight": "600",
                 "fontFamily": "'DM Sans', sans-serif", "cursor": "pointer",
-                "boxShadow": f"0 6px 26px rgba(200,16,46,0.42), 0 1px 0 rgba(255,255,255,0.2) inset",
+                "boxShadow": "0 6px 26px rgba(192,57,43,0.38), 0 1px 0 rgba(255,255,255,0.18) inset",
                 "display": "block", "letterSpacing": "0.4px",
             }),
             html.Div(id="classify-output", style={"marginTop": "18px"})
@@ -581,10 +503,10 @@ def update_stat_cards(n):
     pos_pct  = f"{round(positive / total * 100)}%" if total > 0 else "—"
     neg_pct  = f"{round(negative / total * 100)}%" if total > 0 else "—"
     return [
-        stat_card("total",    "Total Reviews", str(total),   COLOR_TEXT,     "across all platforms", C_GOLD2,   "f1"),
-        stat_card("positive", "Positive",      pos_pct,      COLOR_POSITIVE, f"{positive} reviews",  C_GREEN,   "f1"),
-        stat_card("negative", "Negative",      neg_pct,      COLOR_NEGATIVE, f"{negative} reviews",  C_RED,     "f1"),
-        stat_card("neutral",  "Neutral",       str(neutral), COLOR_NEUTRAL,  "mixed opinions",       C_PEACH,   "f1"),
+        stat_card("Total Reviews", str(total),   COLOR_TEXT,     "across all platforms", C_GOLD,  C_GOLD2,  "📋", "f1"),
+        stat_card("Positive",      pos_pct,      COLOR_POSITIVE, f"{positive} reviews",  C_GREEN, "#7EC8A0", "😊", "f1"),
+        stat_card("Negative",      neg_pct,      COLOR_NEGATIVE, f"{negative} reviews",  C_RED,   C_RED2,   "😞", "f1"),
+        stat_card("Neutral",       str(neutral), COLOR_NEUTRAL,  "mixed opinions",       C_PEACH, C_PEACH2, "😐", "f1"),
     ]
 
 
@@ -595,16 +517,15 @@ def update_pie(n):
         return {}
     labels = ["Positive", "Negative", "Neutral"]
     values = [data.get("positive", 0), data.get("negative", 0), data.get("neutral", 0)]
-    colors = [COLOR_POSITIVE, C_RED, COLOR_NEUTRAL]
+    colors = [C_GREEN, C_RED, COLOR_NEUTRAL]
     fig = go.Figure(data=[go.Pie(
         labels=labels, values=values, hole=0.58,
-        marker=dict(colors=colors, line=dict(color="rgba(255,253,240,0.9)", width=3)),
+        marker=dict(colors=colors, line=dict(color="rgba(255,248,225,0.9)", width=3)),
         textfont=dict(color="white", size=12, family="DM Sans"),
         hovertemplate="<b>%{label}</b><br>%{value} reviews · %{percent}<extra></extra>",
         pull=[0.04, 0.04, 0.04]
     )])
     fig.update_layout(
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color=COLOR_TEXT, family="DM Sans"),
         legend=dict(font=dict(color=COLOR_TEXT, size=12), bgcolor="rgba(0,0,0,0)"),
         margin=dict(t=10, b=10, l=10, r=10), height=280
@@ -626,27 +547,55 @@ def update_radar(n):
     fig = go.Figure()
     fig.add_trace(go.Scatterpolar(
         r=p_cl, theta=a_cl, fill="toself", name="Positive",
-        line=dict(color=COLOR_POSITIVE, width=2.5),
-        fillcolor="rgba(26,107,47,0.2)"
+        line=dict(color=C_GREEN, width=2.5), fillcolor="rgba(46,125,82,0.18)"
     ))
     fig.add_trace(go.Scatterpolar(
         r=n_cl, theta=a_cl, fill="toself", name="Negative",
-        line=dict(color=C_RED, width=2.5),
-        fillcolor="rgba(200,16,46,0.14)"
+        line=dict(color=C_RED, width=2.5), fillcolor="rgba(192,57,43,0.14)"
     ))
     fig.update_layout(
         polar=dict(
             bgcolor="rgba(0,0,0,0)",
             radialaxis=dict(visible=True, color=C_GOLD2,
-                            gridcolor="rgba(212,175,55,0.28)",
+                            gridcolor="rgba(212,175,55,0.22)",
                             tickfont=dict(color=COLOR_MUTED, size=10)),
             angularaxis=dict(color=COLOR_TEXT,
-                             tickfont=dict(color=COLOR_MUTED, size=11))
+                             tickfont=dict(color=COLOR_MUTED, size=11),
+                             gridcolor="rgba(212,175,55,0.18)")
         ),
-        paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color=COLOR_TEXT, family="DM Sans"),
         legend=dict(font=dict(color=COLOR_TEXT, size=12), bgcolor="rgba(0,0,0,0)"),
         margin=dict(t=20, b=20, l=40, r=40), height=280
+    )
+    return fig
+
+
+@app.callback(Output("price-chart", "figure"), Input("interval", "n_intervals"))
+def update_price_chart(n):
+    data = fetch("prices")
+    if not data:
+        return {}
+    brand_prices = {}
+    for item in data:
+        brand_prices.setdefault(item["brand"], []).append(item["price_dzd"])
+    brands     = list(brand_prices.keys())
+    avg_prices = [round(sum(v) / len(v), 1) for v in brand_prices.values()]
+    bar_colors = [C_RED if b == "Ramy" else "#C4A882" for b in brands]
+    fig = go.Figure(data=[go.Bar(
+        x=brands, y=avg_prices,
+        marker=dict(color=bar_colors),
+        text=[f"{p} DZD" for p in avg_prices],
+        textposition="outside",
+        textfont=dict(color=COLOR_TEXT, size=11, family="DM Sans"),
+        hovertemplate="%{x}: %{y} DZD<extra></extra>"
+    )])
+    fig.update_layout(
+        font=dict(color=COLOR_TEXT, family="DM Sans"),
+        xaxis=dict(color=COLOR_MUTED, gridcolor="rgba(200,150,10,0.10)",
+                   tickfont=dict(size=11, color=COLOR_MUTED)),
+        yaxis=dict(color=COLOR_MUTED, gridcolor="rgba(200,150,10,0.10)",
+                   title="Avg Price (DZD)", tickfont=dict(size=10, color=COLOR_MUTED)),
+        margin=dict(t=10, b=10, l=10, r=10), height=180, bargap=0.35,
     )
     return fig
 
@@ -657,7 +606,6 @@ def update_top_reviews(n):
     negative = fetch("top-reviews?sentiment=negative&limit=2")
     if not positive and not negative:
         return html.P("No reviews found", style={"color": COLOR_MUTED})
-
     platform_colors = {
         "facebook": "#1877f2", "tiktok": "#ff0050",
         "youtube":  "#ff0000", "jumia":  "#f68b1e"
@@ -718,35 +666,30 @@ def update_price_table(n):
         return html.Th(label, style={
             "color": COLOR_MUTED, "fontWeight": "600",
             "padding": "8px 12px", "textAlign": align,
-            "fontSize": "9px", "letterSpacing": "2px",
-            "textTransform": "uppercase",
-            "borderBottom": f"1px solid {COLOR_BORDER}"
+            "fontSize": "9px", "letterSpacing": "2px", "textTransform": "uppercase",
+            "borderBottom": "1px solid rgba(200,150,10,0.25)"
         })
 
     rows = [html.Tr([th("Brand"), th("Product"), th("Price (DZD)", "right")])]
     for item in data:
         is_ramy = item["brand"] == "Ramy"
-        bg = "rgba(212,175,55,0.10)" if is_ramy else "transparent"
+        bg = "rgba(212,175,55,0.09)" if is_ramy else "transparent"
         rows.append(html.Tr([
             html.Td(item["brand"], style={
                 "padding": "11px 12px", "fontSize": "13px",
                 "color": C_RED if is_ramy else COLOR_TEXT,
-                "fontWeight": "700" if is_ramy else "400",
-                "background": bg,
+                "fontWeight": "700" if is_ramy else "400", "background": bg,
             }),
             html.Td(item["product"], style={
                 "padding": "11px 12px", "fontSize": "13px",
-                "color": COLOR_TEXT if is_ramy else COLOR_MUTED,
-                "background": bg,
+                "color": COLOR_TEXT if is_ramy else COLOR_MUTED, "background": bg,
             }),
             html.Td(f"{item['price_dzd']} DZD", style={
                 "padding": "11px 12px", "textAlign": "right",
                 "fontWeight": "700", "fontSize": "13px",
-                "color": C_GREEN if is_ramy else COLOR_MUTED,
-                "background": bg,
+                "color": C_GREEN if is_ramy else COLOR_MUTED, "background": bg,
             }),
-        ], className="p-row",
-           style={"borderBottom": "1px solid rgba(200,150,10,0.15)"}))
+        ], className="p-row", style={"borderBottom": "1px solid rgba(200,150,10,0.13)"}))
     return html.Table(rows, style={"width": "100%", "borderCollapse": "collapse"})
 
 
@@ -760,17 +703,27 @@ def classify_review(n_clicks, text):
     if not text or text.strip() == "":
         return html.P("Please enter a review first.",
                       style={"color": COLOR_NEUTRAL, "fontSize": "13px"})
-    sentiment, confidence = rule_based_classify(text)
+
+    try:
+        r = requests.post(f"{API_BASE}/predict", json={"text": text}, timeout=5)
+        data = r.json()
+        sentiment = data["label"]
+        confidence = int(data["confidence"] * 100)
+    except Exception as e:
+        print(f"API error: {e}")
+        sentiment, confidence = "neutral", 0
+
     color = {"positive": C_GREEN, "negative": C_RED, "neutral": COLOR_NEUTRAL}[sentiment]
     emoji = {"positive": "✅", "negative": "❌", "neutral": "⚠️"}[sentiment]
     bg    = {
-        "positive": "rgba(26,107,47,0.10)",
-        "negative": "rgba(200,16,46,0.08)",
+        "positive": "rgba(46,125,82,0.09)",
+        "negative": "rgba(192,57,43,0.08)",
         "neutral":  "rgba(184,120,22,0.09)"
     }[sentiment]
-    # Convert hex color to rgb for border
+
     h = color.lstrip('#')
     r, g, b = tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+
     return html.Div([
         html.Div([
             html.Span(emoji + " ", style={"fontSize": "24px"}),
@@ -783,17 +736,17 @@ def classify_review(n_clicks, text):
                 "marginLeft": "12px", "fontWeight": "300"
             })
         ], style={"display": "flex", "alignItems": "center"}),
+
         html.P(get_insight(sentiment, text), style={
             "color": COLOR_MUTED, "fontSize": "13px",
             "marginTop": "10px", "fontStyle": "italic", "fontWeight": "300"
         })
+
     ], style={
-        "background": bg, "borderRadius": "14px",
-        "padding": "16px 20px",
-        "border": f"1.5px solid rgba({r},{g},{b},0.35)",
+        "background": bg, "borderRadius": "14px", "padding": "16px 20px",
+        "border": f"1.5px solid rgba({r},{g},{b},0.32)",
         "borderLeft": f"4px solid {color}",
     })
-
 
 # ─────────────────────────────────────────────
 # CLASSIFIER

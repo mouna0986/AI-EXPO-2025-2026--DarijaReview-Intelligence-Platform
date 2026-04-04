@@ -13,29 +13,16 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 DB_PATH = "database/reviews.db"
 
-# ─────────────────────────────────────────────
-# CONFIGURATION
-# ─────────────────────────────────────────────
+
+
 RAMY_FACEBOOK_URL = "https://www.facebook.com/ramy.jus"
-
-# How many posts to scan
 MAX_POSTS = 5
-
-# How many comments to collect per post
 MAX_COMMENTS_PER_POST = 20
 
 
 def setup_driver():
-    """
-    Sets up Chrome in a way that looks like a real human browser.
-    This reduces the chance of Facebook detecting and blocking us.
-    """
+   
     options = Options()
-
-    # Don't open a visible browser window
-    # Comment this line out if you want to watch it work
-    # options.add_argument("--headless")
-
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-blink-features=AutomationControlled")
@@ -103,10 +90,7 @@ def scroll_down(driver, times=3):
 
 
 def scrape_facebook_comments():
-    """
-    Main scraping function.
-    Opens Ramy's Facebook page, finds posts, collects comments.
-    """
+  
     print("🚀 Starting Facebook scraper...")
     print("⚠️  Facebook will ask you to log in.")
     print("    Log in manually in the browser window, then the scraper continues.\n")
@@ -122,8 +106,7 @@ def scrape_facebook_comments():
         # Wait for the page to load
         time.sleep(4)
 
-        # If Facebook shows a login wall, pause and let the user log in
-        # The script will wait up to 60 seconds for the page to be ready
+       
         print("⏳ Waiting for page to load (log in if prompted)...")
         try:
             WebDriverWait(driver, 60).until(
@@ -132,11 +115,11 @@ def scrape_facebook_comments():
         except Exception:
             print("  Could not find articles, trying to continue anyway...")
 
-        # Scroll to load more posts
+
         scroll_down(driver, times=5)
         time.sleep(2)
 
-        # Find all post links on the page
+    
         print("🔍 Looking for posts...")
         post_links = []
         try:
@@ -160,7 +143,7 @@ def scrape_facebook_comments():
                 time.sleep(3)
                 scroll_down(driver, times=3)
 
-                # Try to click "View more comments" buttons
+               
                 try:
                     more_buttons = driver.find_elements(
                         By.XPATH,
@@ -175,7 +158,7 @@ def scrape_facebook_comments():
                 except Exception:
                     pass
 
-                # Find comment text elements
+               
                 comment_elements = driver.find_elements(
                     By.XPATH,
                     "//div[@data-testid='comment']//div[@dir='auto'] | //ul//li//div[@dir='auto']"
@@ -185,8 +168,7 @@ def scrape_facebook_comments():
                 for element in comment_elements:
                     text = element.text.strip()
 
-                    # Filter: only keep non-empty text that looks like a review
-                    # Skip very short texts (emoji only) and very long texts (spam)
+                   
                     if 5 < len(text) < 500:
                         reviews.append({
                             "platform": "facebook",

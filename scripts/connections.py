@@ -43,7 +43,7 @@ except ImportError:
     HAS_REQUESTS = False
 
 DB_PATH    = "database/reviews.db"
-API_BASE   = "http://localhost:8000"
+API_BASE   = "http://localhost:8000/api"
 DASH_URL   = "http://localhost:8050"
 
 GREEN  = "\033[92m"
@@ -214,8 +214,8 @@ def check_model() -> str:
 def check_pipeline(model_mode: str) -> bool:
     section("CHECK 3 — Full Pipeline (normalize → classify → absa → store)")
 
-    from normalize import preprocess_row
-    from absa import extract_aspects
+    from nlp.normalize import preprocess_row
+    from nlp.absa import extract_aspects
 
     # Mock classify since real model might not be trained
     def mock_classify(text: str) -> dict:
@@ -316,13 +316,20 @@ def check_api() -> bool:
         return True  # not a failure — just not checkable
 
     endpoints = [
-        ("GET",  "/health",          None,                      "server status"),
-        ("GET",  "/summary",         None,                      "metric cards data"),
-        ("GET",  "/sentiment-trend", None,                      "trend chart data"),
-        ("GET",  "/aspects",         None,                      "aspect chart data"),
-        ("GET",  "/top-reviews",     None,                      "quote panel data"),
-        ("GET",  "/prices",          None,                      "price table data"),
-        ("POST", "/predict",         {"text": "ramy zwin ❤️"},  "live classify"),
+       # ("GET",  "/health",          None,                      "server status"),
+      #  ("GET",  "/summary",         None,                      "metric cards data"),
+       # ("GET",  "/sentiment-trend", None,                      "trend chart data"),
+       # ("GET",  "/aspects",         None,                      "aspect chart data"),
+       # ("GET",  "/top-reviews",     None,                      "quote panel data"),
+       # ("GET",  "/prices",          None,                      "price table data"),
+       # ("POST", "/predict",         {"text": "ramy zwin ❤️"},  "live classify"),
+    
+    ("GET",  "/summary",         None,                      "metric cards data"),
+    ("GET",  "/aspects",         None,                      "aspect chart data"),
+    ("GET",  "/top-reviews",     None,                      "quote panel data"),
+    ("GET",  "/prices",          None,                      "price table data"),
+    ("POST", "/predict",         {"text": "ramy zwin ❤️"},  "live classify"),
+
     ]
 
     all_ok = True

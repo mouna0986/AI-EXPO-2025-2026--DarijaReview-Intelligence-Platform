@@ -13,7 +13,7 @@ import sys
 import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from normalize import preprocess_row
+from nlp.normalize import preprocess_row
 
 DB_PATH = "database/reviews.db"
 

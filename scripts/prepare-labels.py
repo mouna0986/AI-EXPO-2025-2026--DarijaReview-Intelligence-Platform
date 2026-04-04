@@ -25,7 +25,7 @@ import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from normalize import preprocess_row
+from nlp.normalize import preprocess_row
 
 #Configuration 
 RAW_DIR      = "data/raw"
