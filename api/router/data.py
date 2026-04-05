@@ -158,15 +158,33 @@ def predict_sentiment(payload: dict):
 
     # Rule-based until real model is ready
     POSITIVE_KW = [
-        "زين","مليح","ممتاز","نعجبني","3jebni","bon","bien","super","top",
-        "بهية","تستاهل","يستاهل","recommande","واو","رائع","نحب","زينة",
-        "waw","mzian","pos_emoji","bni","bnin","délicieux","excellent"
+        "زين", "مليح", "ممتاز", "نعجبني", "3jebni",
+    "bon", "bien", "super", "top",
+    "بهية", "تستاهل", "يستاهل", "recommande",
+    "واو", "رائع", "نحب", "زينة", "waw", "mzian",
+    "délicieux", "excellent", "parfait", "bni", "bnin","pos_emoji","délicieux","excellent"
     ]
     NEGATIVE_KW = [
-        "خايب","ma3jbni","غالي","mauvais","nul","ما عجبنيش","cher","déçu",
-        "خسارة","ما نشريش","خايبة","مش مليح","neg_emoji","khayeb","ghali",
-        "périmé","expiré","makach","introuvable"
+            "خايب", "خايبة", "غالي", "غالية", "mauvais", "nul",
+    "ما عجبنيش", "ما عجبني", "ma3jebni", "ma3jebnich",
+    "ma3jbni", "ma3jbnis", "cher", "déçu",
+    "خسارة", "ما نشريش", "مش مليح", "khayeb", "ghali",
+    "périmé", "expiré", "makach", "machi zin",
+    "noo", "laa", "لا لا", "عيب", "prix bzaf","neg_emoji","khayeb","ghali",
+    "makach","introuvable"
     ]
+    
+    
+    
+    
+ 
+    "خايب", "خايبة", "غالي", "غالية", "mauvais", "nul",
+    "ما عجبنيش", "ما عجبني", "ma3jebni", "ma3jebnich",
+    "ma3jbni", "ma3jbnis", "cher", "déçu",
+    "خسارة", "ما نشريش", "مش مليح", "khayeb", "ghali",
+    "périmé", "expiré", "makach", "machi zin",
+    "noo", "laa", "لا لا", "عيب", "prix bzaf", "bzzaf"
+
 
     t = normalized.lower()
     pos = sum(1 for kw in POSITIVE_KW if kw in t)
