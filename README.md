@@ -19,7 +19,7 @@ Built for AI EXPO 2026 — House of AI @ Blida 1 University.
 
 ### Setup
 ```bash
-git clone https://github.com/mouna0986/darija-review-intelligence
+git clone https://github.com/mouna0986/AI-EXPO-2025-2026--DarijaReview-Intelligence-Platform
 cd darija-review-intelligence
 python -m venv venv
 venv\Scripts\activate        # Windows
